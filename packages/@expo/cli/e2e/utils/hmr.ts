@@ -13,7 +13,11 @@ export function makeHotPredicate(predicate: (data: Record<string, any>) => boole
 export async function openPageAndEagerlyLoadJS(
   expo: ReturnType<typeof createExpoStart>,
   page: Page,
-  url?: string
+  url?: string,
+  // SPA-mode tests connect HMR well under 1s, but streaming-SSR tests can need longer on slow
+  // CI runners because of the SSR render + hydration that runs before HMR registers. Default
+  // preserved for existing callers; opt in to a higher value where needed.
+  { socketTimeout = 1_000 }: { socketTimeout?: number } = {}
 ) {
   // Keep track of the `/message` socket, which is used to control the device programmatically
   const messageSocketPromise = page.waitForEvent('websocket', (ws) =>
@@ -31,8 +35,12 @@ export async function openPageAndEagerlyLoadJS(
 
   // Ensure the sockets are registered
   const [hotSocket] = await Promise.all([
-    raceOrFail(hotSocketPromise, 1_000, 'HMR on client took too long to connect.'),
-    raceOrFail(messageSocketPromise, 1_000, 'Message socket on client took too long to connect.'),
+    raceOrFail(hotSocketPromise, socketTimeout, 'HMR on client took too long to connect.'),
+    raceOrFail(
+      messageSocketPromise,
+      socketTimeout,
+      'Message socket on client took too long to connect.'
+    ),
   ]);
 
   return {

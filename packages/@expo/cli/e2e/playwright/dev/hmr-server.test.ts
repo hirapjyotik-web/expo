@@ -17,6 +17,10 @@ const ORIGINAL_LOADER_VALUE = 'root-index';
 test.beforeAll(() => clearEnv());
 test.afterAll(() => restoreEnv());
 
+// Streaming SSR adds page render + hydration weight before HMR registers, so the helper's
+// default 1s socket timeout consistently races on slow CI runners. Give it 60s here.
+const OPEN_PAGE_OPTS = { socketTimeout: 60_000 };
+
 test.describe('server-loader HMR in streaming SSR', () => {
   // NOTE(@hassankhan): Needed to prevent file mutations from leaking into unrelated tests
   test.describe.configure({ mode: 'serial' });
@@ -35,7 +39,7 @@ test.describe('server-loader HMR in streaming SSR', () => {
     },
   });
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     await resetAllFixtures();
 
     console.time('expo start');
@@ -46,15 +50,8 @@ test.describe('server-loader HMR in streaming SSR', () => {
     await expoStart.fetchBundleAsync('/').then((response) => response.text());
     console.timeEnd('Eagerly bundled JS');
   });
-  test.afterAll(async () => {
-    await expoStart.stopAsync();
-    await resetAllFixtures();
-  });
-
-  test.beforeEach(async () => {
-    await resetAllFixtures();
-  });
   test.afterEach(async () => {
+    await expoStart.stopAsync();
     await resetAllFixtures();
   });
 
@@ -62,7 +59,12 @@ test.describe('server-loader HMR in streaming SSR', () => {
     const pageErrors = pageCollectErrors(page);
     const messages = trackMessageSocket(page);
 
-    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(expoStart, page);
+    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(
+      expoStart,
+      page,
+      undefined,
+      OPEN_PAGE_OPTS
+    );
     expect(messages.socket).toBeDefined();
 
     await expect(page.locator('[data-testid="loader-result"]')).toContainText(
@@ -105,7 +107,12 @@ test.describe('server-loader HMR in streaming SSR', () => {
     const pageErrors = pageCollectErrors(page);
     const messages = trackMessageSocket(page);
 
-    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(expoStart, page);
+    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(
+      expoStart,
+      page,
+      undefined,
+      OPEN_PAGE_OPTS
+    );
     expect(messages.socket).toBeDefined();
 
     await expect(page.locator('[data-testid="loader-result"]')).toContainText(
@@ -134,7 +141,12 @@ test.describe('server-loader HMR in streaming SSR', () => {
     const pageErrors = pageCollectErrors(page);
     const messages = trackMessageSocket(page);
 
-    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(expoStart, page);
+    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(
+      expoStart,
+      page,
+      undefined,
+      OPEN_PAGE_OPTS
+    );
     expect(messages.socket).toBeDefined();
 
     await expect(page.locator('[data-testid="loader-result"]')).toContainText(
@@ -163,7 +175,12 @@ test.describe('server-loader HMR in streaming SSR', () => {
     const pageErrors = pageCollectErrors(page);
     const messages = trackMessageSocket(page);
 
-    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(expoStart, page);
+    const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(
+      expoStart,
+      page,
+      undefined,
+      OPEN_PAGE_OPTS
+    );
     expect(messages.socket).toBeDefined();
 
     await page.click('a[href="/posts/static-post-1"]');
@@ -203,7 +220,8 @@ test.describe('server-loader HMR in streaming SSR', () => {
     const { waitForFashRefresh } = await openPageAndEagerlyLoadJS(
       expoStart,
       page,
-      new URL('/no-loader', expoStart.url.href).toString()
+      new URL('/no-loader', expoStart.url.href).toString(),
+      OPEN_PAGE_OPTS
     );
     expect(messages.socket).toBeDefined();
 
