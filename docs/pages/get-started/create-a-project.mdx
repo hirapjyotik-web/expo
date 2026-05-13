@@ -1,4 +1,112 @@
----
+import React, { useState } from "react"; import { View, Text, TextInput, TouchableOpacity, FlatList, SafeAreaView, StyleSheet, } from "react-native";
+
+export default function App() { const initialChats = [ { id: "1", name: "Alex", status: "Online", messages: [ { id: "1", sender: "Alex", text: "Hey 👋" }, { id: "2", sender: "You", text: "Hello!" }, ], }, { id: "2", name: "Sarah", status: "Typing...", messages: [{ id: "3", sender: "Sarah", text: "How are you?" }], }, ];
+
+const [chats, setChats] = useState(initialChats); const [selectedChat, setSelectedChat] = useState(initialChats[0]); const [message, setMessage] = useState("");
+
+const sendMessage = () => { if (!message.trim()) return;
+
+const updatedChats = chats.map((chat) => {
+  if (chat.id === selectedChat.id) {
+    return {
+      ...chat,
+      messages: [
+        ...chat.messages,
+        {
+          id: Date.now().toString(),
+          sender: "You",
+          text: message,
+        },
+      ],
+    };
+  }
+  return chat;
+});
+
+setChats(updatedChats);
+
+const updatedSelected = updatedChats.find(
+  (chat) => chat.id === selectedChat.id
+);
+
+setSelectedChat(updatedSelected);
+setMessage("");
+
+};
+
+return ( <SafeAreaView style={styles.container}> {/* Sidebar */} <View style={styles.sidebar}> <Text style={styles.logo}>Chat App</Text>
+
+<FlatList
+      data={chats}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={[
+            styles.chatCard,
+            selectedChat.id === item.id && styles.activeChat,
+          ]}
+          onPress={() => setSelectedChat(item)}
+        >
+          <Text style={styles.chatName}>{item.name}</Text>
+          <Text style={styles.status}>{item.status}</Text>
+        </TouchableOpacity>
+      )}
+    />
+  </View>
+
+  {/* Chat Area */}
+  <View style={styles.chatArea}>
+    <View style={styles.header}>
+      <Text style={styles.headerName}>{selectedChat.name}</Text>
+      <Text style={styles.headerStatus}>{selectedChat.status}</Text>
+    </View>
+
+    <FlatList
+      data={selectedChat.messages}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.messagesContainer}
+      renderItem={({ item }) => (
+        <View
+          style={[
+            styles.messageWrapper,
+            item.sender === "You"
+              ? styles.messageRight
+              : styles.messageLeft,
+          ]}
+        >
+          <View
+            style={[
+              styles.messageBubble,
+              item.sender === "You"
+                ? styles.youBubble
+                : styles.otherBubble,
+            ]}
+          >
+            <Text style={styles.messageText}>{item.text}</Text>
+          </View>
+        </View>
+      )}
+    />
+
+    <View style={styles.inputContainer}>
+      <TextInput
+        value={message}
+        onChangeText={setMessage}
+        placeholder="Type a message..."
+        placeholderTextColor="#999"
+        style={styles.input}
+      />
+
+      <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+        <Text style={styles.sendText}>Send</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</SafeAreaView>
+
+); }
+
+const styles = StyleSheet.create({ container: { flex: 1, flexDirection: "row", backgroundColor: "#0f0f0f", }, sidebar: { width: 120, backgroundColor: "#111", padding: 10, borderRightWidth: 1, borderRightColor: "#222", }, logo: { color: "white", fontSize: 22, fontWeight: "bold", marginBottom: 20, }, chatCard: { backgroundColor: "#1b1b1b", padding: 12, borderRadius: 16, marginBottom: 10, }, activeChat: { backgroundColor: "#2a2a2a", }, chatName: { color: "white", fontWeight: "bold", }, status: { color: "#00ff88", fontSize: 12, marginTop: 4, }, chatArea: { flex: 1, }, header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#222", }, headerName: { color: "white", fontSize: 22, fontWeight: "bold", }, headerStatus: { color: "#aaa", marginTop: 4, }, messagesContainer: { padding: 16, }, messageWrapper: { marginBottom: 14, flexDirection: "row", }, messageLeft: { justifyContent: "flex-start", }, messageRight: { justifyContent: "flex-end", }, messageBubble: { maxWidth: "75%", padding: 14, borderRadius: 18, }, youBubble: { backgroundColor: "#2563eb", }, otherBubble: { backgroundColor: "#222", }, messageText: { color: "white", }, inputContainer: { flexDirection: "row", padding: 12, borderTopWidth: 1, borderTopColor: "#222", backgroundColor: "#111", }, input: { flex: 1, backgroundColor: "#222", color: "white", borderRadius: 16, paddingHorizontal: 16, marginRight: 10, }, sendButton: { backgroundColor: "#2563eb", paddingHorizontal: 20, justifyContent: "center", borderRadius: 16, }, sendText: { color: "white", fontWeight: "bold", }, });---
 title: Create a project
 description: Learn how to create a new Expo project.
 hideTOC: true
